@@ -9,10 +9,18 @@ export const actions = {
 		const data = await request.formData();
 		const title = (data.get('title') as string)?.trim();
 		const optionsRaw = (data.get('options') as string)?.trim();
-		const numVoters = parseInt(data.get('numVoters') as string) || 1;
+		const voterNamesRaw = (data.get('voterNames') as string)?.trim();
 
 		if (!title || !optionsRaw) {
 			return { error: 'Title and options are required.' };
+		}
+
+		const voterNamesList = voterNamesRaw
+			? voterNamesRaw.split(/\n/).map((s) => s.trim()).filter(Boolean)
+			: ['Voter 1'];
+
+		if (voterNamesList.length < 1) {
+			return { error: 'Add at least 1 voter.' };
 		}
 
 		const optionLabels = optionsRaw
@@ -57,10 +65,10 @@ export const actions = {
 			isAdmin: true
 		};
 
-		const voterRows = Array.from({ length: numVoters }, (_, i) => ({
+		const voterRows = voterNamesList.map((name) => ({
 			voteId: vote.id,
 			token: generateToken(),
-			name: `Voter ${i + 1}`,
+			name,
 			isAdmin: false
 		}));
 

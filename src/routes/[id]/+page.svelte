@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PairwiseMatrix from '$lib/components/PairwiseMatrix.svelte';
-	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowUp } from '@lucide/svelte';
+	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowDown } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -125,7 +125,7 @@
 				</div>
 				<div class="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
 					<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
-					<span class="flex items-center gap-1"><ArrowUp class="h-3 w-3" /> prefer column</span>
+					<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
 				</div>
 				<div class="bg-muted/30 border border-border rounded-lg p-4">
 					<PairwiseMatrix

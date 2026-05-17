@@ -7,11 +7,19 @@
 	let title = $state('');
 	let optionsText = $state('');
 	let numVoters = $state(3);
+	let voterNames = $state('');
 	let submitting = $state(false);
 
 	const parsedOptions = $derived(
 		optionsText
 			.split(/[\n,;]+/)
+			.map((s) => s.trim())
+			.filter(Boolean)
+	);
+
+	const parsedNames = $derived(
+		voterNames
+			.split(/\n/)
 			.map((s) => s.trim())
 			.filter(Boolean)
 	);
@@ -79,18 +87,20 @@
 			</div>
 
 			<div class="space-y-1.5">
-				<label for="numVoters" class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-					Number of voters
+				<label for="voterNames" class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+					Voters — one name per line
 				</label>
-				<input
-					id="numVoters"
-					name="numVoters"
-					type="number"
-					bind:value={numVoters}
-					min="1"
-					max="50"
-					class="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
+				<textarea
+					id="voterNames"
+					name="voterNames"
+					bind:value={voterNames}
+					placeholder={"Alice\nBob\nCharlie"}
+					rows="3"
+					class="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed"
+				></textarea>
+				{#if parsedNames.length > 0}
+					<p class="text-xs text-muted-foreground">{parsedNames.length} voter{parsedNames.length !== 1 ? 's' : ''}</p>
+				{/if}
 			</div>
 
 			<button

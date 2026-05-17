@@ -1,8 +1,58 @@
 <script lang="ts">
 	import PairwiseMatrix from '$lib/components/PairwiseMatrix.svelte';
-	import { Vote, ArrowLeft, ArrowUp } from '@lucide/svelte';
+	import { Vote, ArrowLeft, ArrowDown, BarChart3 } from '@lucide/svelte';
 
 	let { data } = $props();
+	let answered = $state(data.votes.length);
+
+	type Option = { id: number; label: string; position: number };
+
+	function computeRanking(
+		opts: Option[],
+		votesList: { optionAId: number; optionBId: number; winner: string }[]
+	) {
+		const wins: Record<number, number> = {};
+		const losses: Record<number, number> = {};
+		for (const o of opts) {
+			wins[o.id] = 0;
+			losses[o.id] = 0;
+		}
+
+		const pairs: [number, number][] = [];
+		for (let i = 0; i < opts.length; i++) {
+			for (let j = i + 1; j < opts.length; j++) {
+				pairs.push([opts[i].id, opts[j].id]);
+			}
+		}
+
+		for (const [aId, bId] of pairs) {
+			let aCount = 0;
+			let bCount = 0;
+			for (const v of votesList) {
+				if (v.optionAId === aId && v.optionBId === bId) {
+					if (v.winner === 'a') aCount++;
+					else if (v.winner === 'b') bCount++;
+				}
+			}
+			if (aCount > bCount) {
+				wins[aId]++;
+				losses[bId]++;
+			} else if (bCount > aCount) {
+				wins[bId]++;
+				losses[aId]++;
+			}
+		}
+
+		return opts
+			.map((o) => ({
+				...o,
+				score: wins[o.id] - losses[o.id]
+			}))
+			.sort((a, b) => b.score - a.score);
+	}
+
+	const myRanking = $derived(computeRanking(data.options, data.votes));
+	const totalRanking = $derived(computeRanking(data.options, data.allVotes));
 </script>
 
 <div class="min-h-screen bg-background">
@@ -19,7 +69,7 @@
 			</p>
 			<div class="flex items-center gap-4 text-xs text-muted-foreground">
 				<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
-				<span class="flex items-center gap-1"><ArrowUp class="h-3 w-3" /> prefer column</span>
+				<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
 			</div>
 		</div>
 
@@ -28,11 +78,53 @@
 				options={data.options}
 				votes={data.votes}
 				voterToken={data.voter.token}
+				bind:answered
 			/>
 		</div>
 
 		<p class="text-xs text-muted-foreground text-center">
-			{data.votes.length} / {data.totalPairs} pairs answered
+			{answered} / {data.totalPairs} pairs answered
 		</p>
+
+		<!-- Rankings -->
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<!-- Your ranking -->
+			<section>
+				<div class="flex items-center gap-2 mb-3">
+					<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
+					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+						Your ranking
+					</h2>
+				</div>
+				<div class="space-y-1">
+					{#each myRanking as result, rank}
+						<div class="flex items-center gap-3 py-1.5">
+							<span class="text-xs text-muted-foreground font-mono w-4 text-right">{rank + 1}</span>
+							<span class="text-sm truncate">{result.label}</span>
+							<span class="text-xs text-muted-foreground font-mono ml-auto">{result.score}</span>
+						</div>
+					{/each}
+				</div>
+			</section>
+
+			<!-- Total ranking -->
+			<section>
+				<div class="flex items-center gap-2 mb-3">
+					<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
+					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+						Group ranking
+					</h2>
+				</div>
+				<div class="space-y-1">
+					{#each totalRanking as result, rank}
+						<div class="flex items-center gap-3 py-1.5">
+							<span class="text-xs text-muted-foreground font-mono w-4 text-right">{rank + 1}</span>
+							<span class="text-sm truncate">{result.label}</span>
+							<span class="text-xs text-muted-foreground font-mono ml-auto">{result.score}</span>
+						</div>
+					{/each}
+				</div>
+			</section>
+		</div>
 	</div>
 </div>

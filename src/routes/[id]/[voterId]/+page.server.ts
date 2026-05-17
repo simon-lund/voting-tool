@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { votes, options, voters, pairwiseVotes } from '$lib/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -30,6 +30,18 @@ export const load: PageServerLoad = async ({ params }) => {
 		where: eq(pairwiseVotes.voterId, voter.id)
 	});
 
+	const allVoters = await db.query.voters.findMany({
+		where: eq(voters.voteId, vote.id)
+	});
+
+	const voterIds = allVoters.map((v) => v.id);
+	const allVotes =
+		voterIds.length > 0
+			? await db.query.pairwiseVotes.findMany({
+					where: inArray(pairwiseVotes.voterId, voterIds)
+				})
+			: [];
+
 	const totalPairs = (optionRows.length * (optionRows.length - 1)) / 2;
 
 	return {
@@ -37,6 +49,12 @@ export const load: PageServerLoad = async ({ params }) => {
 		voter: { name: voter.name, token: voter.token },
 		options: optionRows,
 		votes: voterVotes.map((v) => ({
+			optionAId: v.optionAId,
+			optionBId: v.optionBId,
+			winner: v.winner
+		})),
+		allVotes: allVotes.map((v) => ({
+			voterId: v.voterId,
 			optionAId: v.optionAId,
 			optionBId: v.optionBId,
 			winner: v.winner
