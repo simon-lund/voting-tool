@@ -189,7 +189,7 @@
 				<button
 					onclick={addOption}
 					disabled={addingOption || !newOption.trim()}
-					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
 				>
 					<Plus class="h-3.5 w-3.5" />
 					Add
@@ -249,7 +249,7 @@
 				<button
 					onclick={addVoter}
 					disabled={addingVoter || !newVoterName.trim()}
-					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
 				>
 					<Plus class="h-3.5 w-3.5" />
 					Add
@@ -351,7 +351,7 @@
 				<button
 					onclick={deleteVote}
 					disabled={deleteConfirm !== data.vote.title || deleting}
-					class="px-3 py-1.5 text-sm font-medium bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50"
+					class="px-3 py-1.5 text-sm font-medium bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:pointer-events-none"
 				>
 					{deleting ? 'Deleting...' : 'Delete vote'}
 				</button>
