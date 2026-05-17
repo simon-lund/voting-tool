@@ -1,10 +1,12 @@
 <script lang="ts">
 	import PairwiseMatrix from '$lib/components/PairwiseMatrix.svelte';
-	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowDown } from '@lucide/svelte';
+	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowDown, Plus } from '@lucide/svelte';
 
 	let { data } = $props();
 
 	let copiedIdx = $state<number | null>(null);
+	let newOption = $state('');
+	let addingOption = $state(false);
 
 	async function copyLink(link: string, idx: number) {
 		await navigator.clipboard.writeText(link);
@@ -12,6 +14,22 @@
 		setTimeout(() => {
 			if (copiedIdx === idx) copiedIdx = null;
 		}, 2000);
+	}
+
+	async function addOption() {
+		if (!newOption.trim() || addingOption) return;
+		addingOption = true;
+		const res = await fetch('/api/options', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ adminId: data.vote.adminId, label: newOption.trim() })
+		});
+		if (res.ok) {
+			const { option } = await res.json();
+			data.options = [...data.options, option];
+			newOption = '';
+		}
+		addingOption = false;
 	}
 
 	type Option = { id: number; label: string; position: number };
@@ -83,6 +101,40 @@
 	</header>
 
 	<div class="max-w-3xl mx-auto p-6 space-y-8">
+		<!-- Options section -->
+		<section>
+			<div class="flex items-center gap-2 mb-3">
+				<Vote class="h-3.5 w-3.5 text-muted-foreground" />
+				<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+					Options
+				</h2>
+			</div>
+			<div class="flex flex-wrap gap-1.5 mb-3">
+				{#each data.options as opt}
+					<span class="text-xs px-2 py-1 bg-muted border border-border rounded-full text-foreground">
+						{opt.label}
+					</span>
+				{/each}
+			</div>
+			<div class="flex gap-2">
+				<input
+					type="text"
+					bind:value={newOption}
+					placeholder="Add option..."
+					onkeydown={(e) => { if (e.key === 'Enter') addOption(); }}
+					class="flex-1 px-3 py-1.5 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+				<button
+					onclick={addOption}
+					disabled={addingOption || !newOption.trim()}
+					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+				>
+					<Plus class="h-3.5 w-3.5" />
+					Add
+				</button>
+			</div>
+		</section>
+
 		<!-- Links section -->
 		<section>
 			<div class="flex items-center gap-2 mb-3">

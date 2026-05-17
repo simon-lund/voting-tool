@@ -87,9 +87,9 @@
 		</p>
 
 		<!-- Rankings -->
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="space-y-6">
 			<!-- Your ranking -->
-			<section>
+			<section class="bg-muted/30 border border-border rounded-lg p-4">
 				<div class="flex items-center gap-2 mb-3">
 					<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
 					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -108,7 +108,7 @@
 			</section>
 
 			<!-- Total ranking -->
-			<section>
+			<section class="bg-muted/30 border border-border rounded-lg p-4">
 				<div class="flex items-center gap-2 mb-3">
 					<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
 					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
