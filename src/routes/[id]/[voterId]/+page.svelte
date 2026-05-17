@@ -1,9 +1,28 @@
 <script lang="ts">
 	import PairwiseMatrix from '$lib/components/PairwiseMatrix.svelte';
+	import { source } from 'sveltekit-sse';
 	import { Vote, ArrowLeft, ArrowDown, BarChart3 } from '@lucide/svelte';
 
 	let { data } = $props();
 	let answered = $state(data.votes.length);
+	let liveAllVotes = $state(data.allVotes);
+
+	const connection = source('/api/events', {
+		options: {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ votePublicId: data.vote.publicId })
+		}
+	});
+
+	const votesEvent = connection.select('votes');
+
+	$effect(() => {
+		const value = votesEvent.json<typeof data.allVotes>();
+		if (value && Array.isArray(value)) {
+			liveAllVotes = value;
+		}
+	});
 
 	type Option = { id: number; label: string; position: number };
 
@@ -52,7 +71,7 @@
 	}
 
 	const myRanking = $derived(computeRanking(data.options, data.votes));
-	const totalRanking = $derived(computeRanking(data.options, data.allVotes));
+	const totalRanking = $derived(computeRanking(data.options, liveAllVotes));
 </script>
 
 <div class="min-h-screen bg-background">
@@ -62,7 +81,7 @@
 		<span class="text-xs text-muted-foreground ml-auto">{data.voter.name}</span>
 	</header>
 
-	<div class="max-w-3xl mx-auto p-6 space-y-6">
+	<div class="max-w-6xl mx-auto p-6 space-y-6">
 		<div>
 			<p class="text-sm text-muted-foreground mb-1">
 				Compare each pair of options. Click a cell to set your preference.

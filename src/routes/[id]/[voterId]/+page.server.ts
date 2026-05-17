@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	const totalPairs = (optionRows.length * (optionRows.length - 1)) / 2;
 
 	return {
-		vote: { title: vote.title },
+		vote: { title: vote.title, publicId: vote.publicId },
 		voter: { name: voter.name, token: voter.token },
 		options: optionRows,
 		votes: voterVotes.map((v) => ({

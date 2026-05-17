@@ -100,7 +100,7 @@
 		<span class="text-xs text-muted-foreground ml-auto">admin</span>
 	</header>
 
-	<div class="max-w-3xl mx-auto p-6 space-y-8">
+	<div class="max-w-6xl mx-auto p-6 space-y-8">
 		<!-- Options section -->
 		<section>
 			<div class="flex items-center gap-2 mb-3">

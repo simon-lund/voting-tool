@@ -88,6 +88,9 @@
 
 	const sorted = $derived([...options].sort((a, b) => a.position - b.position));
 
+	let hoverRow = $state<number | null>(null);
+	let hoverCol = $state<number | null>(null);
+
 	$effect(() => {
 		answered = localVotes.size;
 	});
@@ -103,11 +106,12 @@
 				{/each}
 			</tr>
 		</thead>
-		<tbody>
+		<tbody onmouseleave={() => { hoverRow = null; hoverCol = null; }}>
 			{#each sorted as row, ri}
 				<tr>
 					<td
-						class="p-2 text-xs font-medium text-muted-foreground max-w-24 truncate text-right pr-3"
+						class="p-2 text-xs font-medium max-w-24 truncate text-right pr-3 transition-colors
+							{hoverRow === ri ? 'text-foreground' : 'text-muted-foreground'}"
 						title={row.label}
 					>
 						{row.label}
@@ -116,6 +120,7 @@
 						{@const isDiag = row.id === col.id}
 						{@const isLower = ri > ci}
 						{@const winner = !isDiag ? getWinner(row.id, col.id) : null}
+						{@const isHighlighted = hoverRow === ri || hoverCol === ci}
 						<td class="p-0">
 							{#if isDiag}
 								<div
@@ -125,12 +130,15 @@
 								</div>
 							{:else if isLower}
 								<button
-									class="h-10 w-10 flex items-center justify-center border border-border rounded-md transition-colors
+									class="h-10 w-10 flex items-center justify-center border rounded-md transition-colors
 										{winner !== null
-										? 'bg-foreground text-background'
-										: 'bg-background hover:bg-muted'}
+										? 'bg-foreground text-background border-foreground'
+										: isHighlighted
+											? 'bg-muted/80 border-border'
+											: 'bg-background border-border hover:bg-muted'}
 										{readonly ? 'cursor-default' : 'cursor-pointer'}"
 									onclick={() => toggleCell(row.id, col.id)}
+									onmouseenter={() => { hoverRow = ri; hoverCol = ci; }}
 									disabled={readonly}
 									title={winner === 'row'
 										? `${row.label} preferred`
@@ -155,10 +163,11 @@
 		<tfoot>
 			<tr>
 				<td class="p-2"></td>
-				{#each sorted as col}
+				{#each sorted as col, ci}
 					<td class="p-0 h-0 w-10 relative">
 						<span
-							class="absolute top-1 left-1/2 origin-top-left rotate-45 text-xs font-medium text-muted-foreground whitespace-nowrap"
+							class="absolute top-1 left-1/2 origin-top-left rotate-45 text-xs font-medium whitespace-nowrap transition-colors
+								{hoverCol === ci ? 'text-foreground' : 'text-muted-foreground'}"
 							title={col.label}
 						>
 							{col.label}
