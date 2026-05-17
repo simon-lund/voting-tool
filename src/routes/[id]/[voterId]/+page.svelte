@@ -102,13 +102,15 @@
 			</div>
 		</div>
 
-		<div class="bg-muted/30 border border-border rounded-lg p-4">
-			<PairwiseMatrix
-				options={data.options}
-				votes={data.votes}
-				voterToken={data.voter.token}
-				bind:answered
-			/>
+		<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen px-4">
+			<div class="bg-muted/30 border border-border rounded-lg p-4 w-fit mx-auto max-w-full overflow-x-auto">
+				<PairwiseMatrix
+					options={data.options}
+					votes={data.votes}
+					voterToken={data.voter.token}
+					bind:answered
+				/>
+			</div>
 		</div>
 
 		<p class="text-xs text-muted-foreground text-center">
