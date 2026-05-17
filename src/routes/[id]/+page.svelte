@@ -2,8 +2,33 @@
 	import PairwiseMatrix from '$lib/components/PairwiseMatrix.svelte';
 	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowDown, Plus, Trash2 } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
+	import { source } from 'sveltekit-sse';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Card, CardContent } from '$lib/components/ui/card';
+	import * as Tabs from '$lib/components/ui/tabs';
 
 	let { data } = $props();
+
+	let liveAllVotes = $state(data.allVotes);
+
+	const connection = source('/api/events', {
+		options: {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ votePublicId: data.vote.publicId })
+		}
+	});
+
+	const votesEvent = connection.select('votes');
+
+	$effect(() => {
+		const value = votesEvent.json<typeof data.allVotes>();
+		if (value && Array.isArray(value)) {
+			liveAllVotes = value;
+		}
+	});
 
 	let localOptions = $state(data.options);
 	let localVoters = $state(data.voters);
@@ -15,7 +40,6 @@
 	let addingVoter = $state(false);
 	let deleteConfirm = $state('');
 	let deleting = $state(false);
-	let activeTab = $state<'vote' | 'results'>('vote');
 
 	async function copyLink(link: string, idx: number) {
 		await navigator.clipboard.writeText(link);
@@ -138,7 +162,7 @@
 			.sort((a, b) => b.score - a.score);
 	}
 
-	const results = $derived(computeResults(localOptions, data.allVotes));
+	const results = $derived(computeResults(localOptions, liveAllVotes));
 	const maxScore = $derived(Math.max(...results.map((r) => r.score), 1));
 	const minScore = $derived(Math.min(...results.map((r) => r.score), 0));
 	const scoreRange = $derived(maxScore - minScore || 1);
@@ -147,7 +171,7 @@
 		(localOptions.length * (localOptions.length - 1)) / 2
 	);
 	const totalExpected = $derived(totalPairs * (localVoters.length + 1));
-	const totalAnswered = $derived(data.allVotes.length);
+	const totalAnswered = $derived(liveAllVotes.length);
 </script>
 
 <div class="min-h-screen bg-background">
@@ -168,32 +192,31 @@
 			</div>
 			<div class="flex flex-wrap gap-1.5 mb-3">
 				{#each localOptions as opt}
-					<span class="group text-xs px-2 py-1 bg-muted border border-border rounded-full text-foreground inline-flex items-center gap-1">
+					<Badge variant="secondary" class="group gap-1">
 						{opt.label}
 						<button
 							onclick={() => removeOption(opt.id)}
 							class="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
 							title="Remove"
 						>×</button>
-					</span>
+					</Badge>
 				{/each}
 			</div>
 			<div class="flex gap-2">
-				<input
-					type="text"
+				<Input
 					bind:value={newOption}
 					placeholder="Add option..."
 					onkeydown={(e) => { if (e.key === 'Enter') addOption(); }}
-					class="flex-1 px-3 py-1.5 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+					class="flex-1"
 				/>
-				<button
+				<Button
 					onclick={addOption}
 					disabled={addingOption || !newOption.trim()}
-					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
+					size="sm"
 				>
 					<Plus class="h-3.5 w-3.5" />
 					Add
-				</button>
+				</Button>
 			</div>
 		</section>
 
@@ -239,96 +262,89 @@
 				{/each}
 			</div>
 			<div class="flex gap-2 mt-3">
-				<input
-					type="text"
+				<Input
 					bind:value={newVoterName}
 					placeholder="Add voter..."
 					onkeydown={(e) => { if (e.key === 'Enter') addVoter(); }}
-					class="flex-1 px-3 py-1.5 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+					class="flex-1"
 				/>
-				<button
+				<Button
 					onclick={addVoter}
 					disabled={addingVoter || !newVoterName.trim()}
-					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
+					size="sm"
 				>
 					<Plus class="h-3.5 w-3.5" />
 					Add
-				</button>
+				</Button>
 			</div>
 		</section>
 
 		<!-- Tabs -->
-		<div class="flex gap-1 border-b border-border">
-			<button
-				onclick={() => activeTab = 'vote'}
-				class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-					{activeTab === 'vote' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-			>
-				Vote
-			</button>
-			<button
-				onclick={() => activeTab = 'results'}
-				class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-					{activeTab === 'results' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-			>
-				Results
-			</button>
-		</div>
+		<Tabs.Root value="vote">
+			<Tabs.List>
+				<Tabs.Trigger value="vote">Vote</Tabs.Trigger>
+				<Tabs.Trigger value="results">Results</Tabs.Trigger>
+			</Tabs.List>
 
-		<!-- Vote tab -->
-		{#if activeTab === 'vote'}
-			{#if data.adminVoter}
-				<section>
-					<div class="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
-						<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
-						<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
-					</div>
-					<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen">
-						<div class="bg-muted/30 border-y border-border p-4 w-fit min-w-full overflow-x-auto md:[border:1px_solid_var(--border)] md:rounded-lg md:w-fit md:min-w-0 md:mx-4">
-							<PairwiseMatrix
-								options={localOptions}
-								votes={data.adminVotes}
-								voterToken={data.adminVoter.token}
-							/>
+			<Tabs.Content value="vote">
+				{#if data.adminVoter}
+					<section class="pt-4">
+						<div class="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+							<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
+							<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
 						</div>
+						<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen">
+							<div class="bg-muted/30 border-y border-border p-4 w-fit min-w-full overflow-x-auto md:[border:1px_solid_var(--border)] md:rounded-lg md:w-fit md:min-w-0 md:mx-4">
+								<PairwiseMatrix
+									options={localOptions}
+									votes={data.adminVotes}
+									voterToken={data.adminVoter.token}
+								/>
+							</div>
+						</div>
+					</section>
+				{/if}
+			</Tabs.Content>
+
+			<Tabs.Content value="results">
+				<section class="pt-4">
+					<div class="grid grid-cols-3 gap-2 mb-4">
+						<Card>
+							<CardContent class="p-3">
+								<span class="text-lg font-medium block">{localOptions.length}</span>
+								<span class="text-xs text-muted-foreground">options</span>
+							</CardContent>
+						</Card>
+						<Card>
+							<CardContent class="p-3">
+								<span class="text-lg font-medium block">{localVoters.length + 1}</span>
+								<span class="text-xs text-muted-foreground">voters</span>
+							</CardContent>
+						</Card>
+						<Card>
+							<CardContent class="p-3">
+								<span class="text-lg font-medium block">{totalAnswered}/{totalExpected}</span>
+								<span class="text-xs text-muted-foreground">pairs done</span>
+							</CardContent>
+						</Card>
+					</div>
+
+					<div class="space-y-1">
+						{#each results as result, rank}
+							{@const pct = Math.round(((result.score - minScore) / scoreRange) * 100)}
+							<div class="grid grid-cols-[24px_1fr_80px_40px] items-center gap-3 py-2 border-b border-border last:border-0">
+								<span class="text-xs text-muted-foreground text-right font-mono">{rank + 1}</span>
+								<span class="text-sm font-medium truncate">{result.label}</span>
+								<div class="h-1 bg-muted rounded-full overflow-hidden">
+									<div class="h-full bg-foreground rounded-full" style="width:{pct}%"></div>
+								</div>
+								<span class="text-xs text-muted-foreground text-right font-mono">{result.score}</span>
+							</div>
+						{/each}
 					</div>
 				</section>
-			{/if}
-		{/if}
-
-		<!-- Results tab -->
-		{#if activeTab === 'results'}
-			<section>
-				<div class="grid grid-cols-3 gap-2 mb-4">
-					<div class="bg-muted/50 border border-border rounded-lg p-3">
-						<span class="text-lg font-medium block">{localOptions.length}</span>
-						<span class="text-xs text-muted-foreground">options</span>
-					</div>
-					<div class="bg-muted/50 border border-border rounded-lg p-3">
-						<span class="text-lg font-medium block">{localVoters.length + 1}</span>
-						<span class="text-xs text-muted-foreground">voters</span>
-					</div>
-					<div class="bg-muted/50 border border-border rounded-lg p-3">
-						<span class="text-lg font-medium block">{totalAnswered}/{totalExpected}</span>
-						<span class="text-xs text-muted-foreground">pairs done</span>
-					</div>
-				</div>
-
-				<div class="space-y-1">
-					{#each results as result, rank}
-						{@const pct = Math.round(((result.score - minScore) / scoreRange) * 100)}
-						<div class="grid grid-cols-[24px_1fr_80px_40px] items-center gap-3 py-2 border-b border-border last:border-0">
-							<span class="text-xs text-muted-foreground text-right font-mono">{rank + 1}</span>
-							<span class="text-sm font-medium truncate">{result.label}</span>
-							<div class="h-1 bg-muted rounded-full overflow-hidden">
-								<div class="h-full bg-foreground rounded-full" style="width:{pct}%"></div>
-							</div>
-							<span class="text-xs text-muted-foreground text-right font-mono">{result.score}</span>
-						</div>
-					{/each}
-				</div>
-			</section>
-		{/if}
+			</Tabs.Content>
+		</Tabs.Root>
 
 		<!-- Danger zone -->
 		<section class="border border-destructive/30 rounded-lg p-4 mt-12">
@@ -342,19 +358,19 @@
 				Type <strong class="text-foreground">{data.vote.title}</strong> to permanently delete this vote and all data.
 			</p>
 			<div class="flex gap-2">
-				<input
-					type="text"
+				<Input
 					bind:value={deleteConfirm}
 					placeholder="Type vote title to confirm..."
-					class="flex-1 px-3 py-1.5 text-sm bg-muted/50 border border-destructive/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-destructive/50"
+					class="flex-1 border-destructive/30 focus-visible:ring-destructive/50"
 				/>
-				<button
+				<Button
 					onclick={deleteVote}
 					disabled={deleteConfirm !== data.vote.title || deleting}
-					class="px-3 py-1.5 text-sm font-medium bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+					variant="destructive"
+					size="sm"
 				>
 					{deleting ? 'Deleting...' : 'Delete vote'}
-				</button>
+				</Button>
 			</div>
 		</section>
 	</div>

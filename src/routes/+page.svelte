@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Vote } from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Label } from '$lib/components/ui/label';
 
 	let { form } = $props();
 
 	let title = $state('');
 	let optionsText = $state('');
-	let numVoters = $state(3);
 	let voterNames = $state('');
 	let submitting = $state(false);
 
@@ -50,66 +54,51 @@
 			{/if}
 
 			<div class="space-y-1.5">
-				<label for="title" class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-					Title
-				</label>
-				<input
+				<Label for="title">Title</Label>
+				<Input
 					id="title"
 					name="title"
 					type="text"
 					bind:value={title}
 					placeholder="What should we do this weekend?"
-					class="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
 				/>
 			</div>
 
 			<div class="space-y-1.5">
-				<label for="options" class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-					Options — one per line
-				</label>
-				<textarea
+				<Label for="options">Options — one per line</Label>
+				<Textarea
 					id="options"
 					name="options"
 					bind:value={optionsText}
 					placeholder={"Hiking\nBeach day\nMuseum\nCooking class\nEscape room"}
-					rows="5"
-					class="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed"
-				></textarea>
+					rows={5}
+				/>
 				{#if parsedOptions.length > 0}
 					<div class="flex flex-wrap gap-1.5 mt-2">
 						{#each parsedOptions as opt}
-							<span class="text-xs px-2 py-0.5 bg-muted border border-border rounded-full text-muted-foreground">
-								{opt}
-							</span>
+							<Badge variant="secondary">{opt}</Badge>
 						{/each}
 					</div>
 				{/if}
 			</div>
 
 			<div class="space-y-1.5">
-				<label for="voterNames" class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-					Voters — one name per line
-				</label>
-				<textarea
+				<Label for="voterNames">Voters — one name per line</Label>
+				<Textarea
 					id="voterNames"
 					name="voterNames"
 					bind:value={voterNames}
 					placeholder={"Alice\nBob\nCharlie"}
-					rows="3"
-					class="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed"
-				></textarea>
+					rows={3}
+				/>
 				{#if parsedNames.length > 0}
 					<p class="text-xs text-muted-foreground">{parsedNames.length} voter{parsedNames.length !== 1 ? 's' : ''}</p>
 				{/if}
 			</div>
 
-			<button
-				type="submit"
-				disabled={submitting}
-				class="w-full px-4 py-2.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
-			>
+			<Button type="submit" disabled={submitting} class="w-full">
 				{submitting ? 'Creating...' : 'Create vote'}
-			</button>
+			</Button>
 		</form>
 	</div>
 </div>
