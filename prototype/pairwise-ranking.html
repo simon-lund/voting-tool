@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pairwise Ranking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F5F0;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --text: #1A1A18;
+    --text-muted: #888880;
+    --text-faint: #BBBBB5;
+    --accent: #1A1A18;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  header span {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  .main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 760px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── phases ── */
+  .phase { display: none; }
+  .phase.active { display: block; }
+
+  /* ── section label ── */
+  .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  /* ── card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* ── form ── */
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    font-family: var(--mono);
+  }
+  input[type=number], select, textarea {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: var(--sans);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type=number]:focus, select:focus, textarea:focus {
+    border-color: var(--border-strong);
+  }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.7; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── tags ── */
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; min-height: 0; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 100px;
+    font-size: 12px; font-family: var(--mono);
+  }
+  .tag button {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-faint); font-size: 14px; line-height: 1; padding: 0 1px;
+  }
+  .tag button:hover { color: var(--text); }
+
+  /* ── buttons ── */
+  .btn {
+    padding: 8px 18px; font-size: 14px; font-family: var(--sans);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: transparent; color: var(--text); cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  .btn:hover { background: var(--bg); border-color: var(--border-strong); }
+  .btn:active { transform: scale(.98); }
+  .btn-dark {
+    background: var(--text); color: var(--surface); border-color: var(--text);
+  }
+  .btn-dark:hover { background: #333; border-color: #333; }
+  .btn-row { display: flex; gap: 8px; margin-top: 1.25rem; flex-wrap: wrap; }
+
+  /* ── error ── */
+  .error {
+    font-size: 13px; color: #c0392b;
+    background: #fdf0ed; border: 1px solid #f5c6bc;
+    border-radius: var(--radius-sm); padding: 9px 12px;
+    margin-bottom: 1rem; display: none;
+  }
+
+  /* ── person tabs ── */
+  .person-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .ptab {
+    padding: 6px 14px; font-size: 13px; font-family: var(--mono);
+    border: 1px solid var(--border); border-radius: 100px;
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    transition: all .12s; position: relative;
+  }
+  .ptab:hover { border-color: var(--border-strong); color: var(--text); }
+  .ptab.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .ptab.done { background: var(--bg); color: var(--text-muted); }
+  .ptab.done::after {
+    content: '✓'; margin-left: 5px; font-size: 10px; color: #5a9e6f;
+  }
+
+  /* ── person sub-tabs ── */
+  .subtabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    margin-bottom: 1.25rem;
+  }
+  .stab {
+    padding: 8px 16px; font-size: 13px; font-family: var(--mono);
+    background: none; border: none; border-bottom: 2px solid transparent;
+    cursor: pointer; color: var(--text-muted); margin-bottom: -1px;
+    transition: color .12s, border-color .12s;
+  }
+  .stab.active { color: var(--text); border-bottom-color: var(--text); }
+  .stab:hover { color: var(--text); }
+
+  /* ── progress ── */
+  .progress { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 1.5rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--text); transition: width .3s; border-radius: 2px; }
+
+  /* ── vs card ── */
+  .vs-wrap {
+    display: grid; grid-template-columns: 1fr 36px 1fr;
+    gap: 10px; align-items: center; margin: 1.25rem 0;
+  }
+  .opt-btn {
+    padding: 1.25rem 1rem; min-height: 88px;
+    font-size: 15px; font-family: var(--sans); font-weight: 500;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    cursor: pointer; transition: all .12s;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; line-height: 1.4;
+  }
+  .opt-btn:hover { border-color: var(--text); background: var(--bg); }
+  .opt-btn:active { transform: scale(.97); }
+  .opt-btn.selected { border: 2px solid var(--text); background: var(--bg); }
+  .vs-sep {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-faint); text-align: center;
+  }
+  .tie-btn {
+    width: 100%; padding: 7px;
+    font-size: 12px; color: var(--text-muted);
+    font-family: var(--mono);
+    background: none; border: 1px dashed var(--border);
+    border-radius: var(--radius-sm); cursor: pointer;
+    transition: border-color .12s, color .12s;
+  }
+  .tie-btn:hover { border-color: var(--border-strong); color: var(--text); }
+  .pair-info {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--text-muted); margin-bottom: .5rem;
+  }
+
+  /* ── results ── */
+  .method-tabs { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .mtab {
+    padding: 5px 12px; font-size: 12px; font-family: var(--mono);
+    border: 1px solid var(--border); border-radius: 100px;
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    transition: all .12s;
+  }
+  .mtab:hover { border-color: var(--border-strong); color: var(--text); }
+  .mtab.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .method-desc {
+    font-size: 12px; color: var(--text-muted); font-family: var(--mono);
+    margin-bottom: 1.25rem; line-height: 1.6;
+  }
+  .result-item {
+    display: grid; grid-template-columns: 24px 1fr 90px 40px;
+    align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .result-item:last-child { border: none; }
+  .rank { font-family: var(--mono); font-size: 12px; color: var(--text-faint); text-align: right; }
+  .result-name { font-size: 14px; font-weight: 500; }
+  .result-name small { font-weight: 400; font-size: 11px; color: #5a9e6f; margin-left: 6px; font-family: var(--mono); }
+  .bar-wrap { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--text); border-radius: 3px; }
+  .score-val { font-family: var(--mono); font-size: 12px; color: var(--text-muted); text-align: right; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .stat { background: var(--bg); border-radius: var(--radius-sm); padding: .75rem 1rem; }
+  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 500; display: block; }
+  .stat-lbl { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+
+  /* ── personal results (mark tab) ── */
+  .pair-result {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .pair-result:last-child { border: none; }
+  .pr-winner { font-weight: 500; flex: 1; }
+  .pr-loser { color: var(--text-muted); flex: 1; }
+  .pr-vs { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
+  .pr-tie { color: var(--text-muted); font-family: var(--mono); font-size: 11px; }
+  .unanswered { color: var(--text-faint); font-style: italic; }
+
+  /* ── all done banner ── */
+  .done-banner {
+    text-align: center; padding: 2rem;
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    margin-bottom: 1rem;
+  }
+  .done-banner h3 { font-size: 16px; margin-bottom: .5rem; }
+  .done-banner p { font-size: 13px; color: var(--text-muted); }
+
+  @media (max-width: 540px) {
+    .main { padding: 1rem; }
+    header { padding: 1rem; }
+    .row-2 { grid-template-columns: 1fr; }
+    .vs-wrap { grid-template-columns: 1fr 28px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>pairwise ranking</h1>
+  <span id="header-sub">setup</span>
+</header>
+
+<div class="main">
+
+  <!-- PHASE: SETUP -->
+  <div class="phase active" id="phase-setup">
+    <p class="label">configure</p>
+    <div class="card">
+      <div class="row-2">
+        <div class="field">
+          <label>number of people</label>
+          <input type="number" id="num-people" value="3" min="1" max="30">
+        </div>
+        <div class="field">
+          <label>scoring method</label>
+          <select id="method-select">
+            <option value="copeland">Copeland (wins − losses)</option>
+            <option value="borda">Borda count</option>
+            <option value="condorcet">Condorcet wins</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>activities — one per line, or comma / semicolon separated</label>
+        <textarea id="activities-input" placeholder="Hiking&#10;Beach day&#10;Museum&#10;Cooking class&#10;Escape room"></textarea>
+      </div>
+      <div class="tags" id="tags-area"></div>
+    </div>
+    <div class="error" id="setup-error"></div>
+    <div class="btn-row">
+      <button class="btn btn-dark" onclick="startVoting()">Start voting →</button>
+    </div>
+  </div>
+
+  <!-- PHASE: VOTE -->
+  <div class="phase" id="phase-vote">
+    <div class="person-tabs" id="person-tabs"></div>
+
+    <!-- sub-tabs per person -->
+    <div class="subtabs">
+      <button class="stab active" id="stab-mark" onclick="showSubTab('mark')">mark</button>
+      <button class="stab" id="stab-results" onclick="showSubTab('results')">results</button>
+    </div>
+
+    <!-- mark sub-tab -->
+    <div id="subtab-mark">
+      <div class="progress"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="card">
+        <p class="pair-info" id="pair-info"></p>
+        <div class="vs-wrap">
+          <button class="opt-btn" id="opt-a" onclick="vote('a')"></button>
+          <span class="vs-sep">vs</span>
+          <button class="opt-btn" id="opt-b" onclick="vote('b')"></button>
+        </div>
+        <button class="tie-btn" onclick="vote('tie')">no preference / tie</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="prevPair()">← prev</button>
+        <button class="btn" onclick="nextUnanswered()">next unanswered →</button>
+      </div>
+    </div>
+
+    <!-- results sub-tab -->
+    <div id="subtab-results" style="display:none">
+      <div class="stats" id="stats-block"></div>
+      <div class="method-tabs" id="method-tabs-vote"></div>
+      <p class="method-desc" id="method-desc-vote"></p>
+      <div id="results-list-vote"></div>
+      <p class="label" style="margin-top:1.5rem">your picks</p>
+      <div id="personal-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── state ──
+let activities = [], numPeople = 3, currentMethod = 'copeland';
+let votes = {};       // votes[personIdx][pairKey] = 'a'|'b'|'tie'|null
+let pairs = [];
+let currentPerson = 0, currentPairIdx = 0;
+let personDone = [];
+let currentSubTab = 'mark';
+
+const METHODS = {
+  copeland: { label: 'Copeland', desc: 'Score = wins minus losses. Best general-purpose — handles cycles gracefully.' },
+  borda:    { label: 'Borda',    desc: 'Winner of each pair gets 1 pt, tie gives 0.5 each. Rewards consistent finishers.' },
+  condorcet:{ label: 'Condorcet',desc: 'Count how many activities beat others by majority. Marks a true Condorcet winner if one exists.' }
+};
+
+// ── setup ──
+document.getElementById('activities-input').addEventListener('input', renderTags);
+
+function parseActivities() {
+  const raw = document.getElementById('activities-input').value;
+  const lines = raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  const seen = new Set(), out = [];
+  for (const l of lines) { if (!seen.has(l.toLowerCase())) { seen.add(l.toLowerCase()); out.push(l); } }
+  return out;
+}
+
+function renderTags() {
+  const acts = parseActivities();
+  const area = document.getElementById('tags-area');
+  area.innerHTML = acts.map((a, i) =>
+    `<span class="tag">${a}<button onclick="removeActivity(${i})" aria-label="remove">×</button></span>`
+  ).join('');
+}
+
+function removeActivity(idx) {
+  const acts = parseActivities();
+  acts.splice(idx, 1);
+  document.getElementById('activities-input').value = acts.join('\n');
+  renderTags();
+}
+
+function makePairs(n) {
+  const p = [];
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) p.push([i, j]);
+  return p;
+}
+
+function startVoting() {
+  activities = parseActivities();
+  numPeople = parseInt(document.getElementById('num-people').value) || 1;
+  currentMethod = document.getElementById('method-select').value;
+  const err = document.getElementById('setup-error');
+  if (activities.length < 2) { err.style.display = 'block'; err.textContent = 'Add at least 2 activities.'; return; }
+  if (numPeople < 1) { err.style.display = 'block'; err.textContent = 'Need at least 1 person.'; return; }
+  err.style.display = 'none';
+  pairs = makePairs(activities.length);
+  votes = {};
+  for (let p = 0; p < numPeople; p++) {
+    votes[p] = {};
+    for (const [i, j] of pairs) votes[p][i + ',' + j] = null;
+  }
+  personDone = Array(numPeople).fill(false);
+  currentPerson = 0;
+  currentPairIdx = 0;
+  buildPersonTabs();
+  showPhase('phase-vote');
+  showSubTab('mark');
+  renderPair();
+  document.getElementById('header-sub').textContent = 'voting';
+}
+
+// ── person tabs ──
+function buildPersonTabs() {
+  const el = document.getElementById('person-tabs');
+  el.innerHTML = Array.from({ length: numPeople }, (_, i) =>
+    `<button class="ptab${i === 0 ? ' active' : ''}" id="ptab-${i}" onclick="switchPerson(${i})">person ${i + 1}</button>`
+  ).join('');
+}
+
+function updatePersonTabs() {
+  for (let i = 0; i < numPeople; i++) {
+    const btn = document.getElementById(`ptab-${i}`);
+    if (!btn) continue;
+    btn.className = 'ptab' + (personDone[i] ? ' done' : '') + (i === currentPerson ? ' active' : '');
+  }
+}
+
+function switchPerson(p) {
+  currentPerson = p;
+  currentPairIdx = firstUnanswered(p);
+  updatePersonTabs();
+  renderPair();
+  if (currentSubTab === 'results') renderVoteResults();
+  else renderPersonalList();
+}
+
+function firstUnanswered(p) {
+  for (let i = 0; i < pairs.length; i++) {
+    const [a, b] = pairs[i];
+    if (votes[p][a + ',' + b] === null) return i;
+  }
+  return pairs.length;
+}
+
+// ── sub-tabs ──
+function showSubTab(tab) {
+  currentSubTab = tab;
+  document.getElementById('subtab-mark').style.display = tab === 'mark' ? 'block' : 'none';
+  document.getElementById('subtab-results').style.display = tab === 'results' ? 'block' : 'none';
+  document.getElementById('stab-mark').className = 'stab' + (tab === 'mark' ? ' active' : '');
+  document.getElementById('stab-results').className = 'stab' + (tab === 'results' ? ' active' : '');
+  if (tab === 'results') renderVoteResults();
+}
+
+// ── voting ──
+function renderPair() {
+  const answered = pairs.filter(([a, b]) => votes[currentPerson][a + ',' + b] !== null).length;
+  document.getElementById('prog-fill').style.width = Math.round(answered / pairs.length * 100) + '%';
+
+  if (currentPairIdx >= pairs.length) {
+    // all done for this person
+    personDone[currentPerson] = true;
+    updatePersonTabs();
+    document.getElementById('pair-info').textContent = 'all pairs answered ✓';
+    document.getElementById('opt-a').textContent = '—';
+    document.getElementById('opt-b').textContent = '—';
+    document.getElementById('opt-a').className = 'opt-btn';
+    document.getElementById('opt-b').className = 'opt-btn';
+    return;
+  }
+
+  const [a, b] = pairs[currentPairIdx];
+  const pairKey = a + ',' + b;
+  const prev = votes[currentPerson][pairKey];
+  document.getElementById('pair-info').textContent =
+    `pair ${currentPairIdx + 1} of ${pairs.length}  ·  ${answered} answered`;
+  document.getElementById('opt-a').textContent = activities[a];
+  document.getElementById('opt-b').textContent = activities[b];
+  document.getElementById('opt-a').className = 'opt-btn' + (prev === 'a' ? ' selected' : '');
+  document.getElementById('opt-b').className = 'opt-btn' + (prev === 'b' ? ' selected' : '');
+}
+
+function vote(choice) {
+  if (currentPairIdx >= pairs.length) return;
+  const [a, b] = pairs[currentPairIdx];
+  votes[currentPerson][a + ',' + b] = choice;
+  // advance to next unanswered
+  let next = currentPairIdx + 1;
+  while (next < pairs.length && votes[currentPerson][pairs[next][0] + ',' + pairs[next][1]] !== null) next++;
+  currentPairIdx = next;
+  renderPair();
+  renderPersonalList();
+}
+
+function prevPair() {
+  if (currentPairIdx <= 0) return;
+  currentPairIdx = Math.max(0, currentPairIdx - 1);
+  renderPair();
+}
+
+function nextUnanswered() {
+  currentPairIdx = firstUnanswered(currentPerson);
+  renderPair();
+}
+
+// ── scoring ──
+function computeScores() {
+  const n = activities.length;
+  const wins = Array(n).fill(0), losses = Array(n).fill(0), points = Array(n).fill(0);
+  for (const [i, j] of pairs) {
+    let aV = 0, bV = 0;
+    for (let p = 0; p < numPeople; p++) {
+      const v = votes[p][i + ',' + j];
+      if (v === 'a') aV++; else if (v === 'b') bV++;
+    }
+    if (aV > bV) { wins[i]++; losses[j]++; points[i] += 1; }
+    else if (bV > aV) { wins[j]++; losses[i]++; points[j] += 1; }
+    else { points[i] += 0.5; points[j] += 0.5; }
+  }
+  return activities.map((_, i) => ({
+    idx: i, name: activities[i],
+    copeland: wins[i] - losses[i],
+    borda: points[i],
+    condorcet: wins[i],
+    wins: wins[i], losses: losses[i]
+  }));
+}
+
+function isCondorcetWinner(idx) {
+  for (const [i, j] of pairs) {
+    const other = i === idx ? j : j === idx ? i : -1;
+    if (other === -1) continue;
+    let aV = 0, bV = 0;
+    for (let p = 0; p < numPeople; p++) {
+      const v = votes[p][Math.min(idx, other) + ',' + Math.max(idx, other)];
+      if (idx < other ? v === 'a' : v === 'b') aV++; else if (idx < other ? v === 'b' : v === 'a') bV++;
+    }
+    if (aV <= bV) return false;
+  }
+  return true;
+}
+
+// ── results view ──
+function renderVoteResults() {
+  const scores = computeScores();
+  scores.sort((a, b) => b[currentMethod] - a[currentMethod]);
+  const maxS = Math.max(...scores.map(s => s[currentMethod]));
+  const minS = Math.min(...scores.map(s => s[currentMethod]));
+  const range = maxS - minS || 1;
+  const totalPairs = pairs.length * numPeople;
+  const answered = Object.values(votes).reduce((sum, pv) => sum + Object.values(pv).filter(v => v !== null).length, 0);
+
+  document.getElementById('stats-block').innerHTML = `
+    <div class="stat"><span class="stat-val">${activities.length}</span><span class="stat-lbl">activities</span></div>
+    <div class="stat"><span class="stat-val">${numPeople}</span><span class="stat-lbl">people</span></div>
+    <div class="stat"><span class="stat-val">${answered}/${totalPairs}</span><span class="stat-lbl">pairs done</span></div>`;
+
+  document.getElementById('method-tabs-vote').innerHTML = Object.entries(METHODS).map(([k, v]) =>
+    `<button class="mtab${k === currentMethod ? ' active' : ''}" onclick="setMethod('${k}')">${v.label}</button>`
+  ).join('');
+
+  document.getElementById('method-desc-vote').textContent = METHODS[currentMethod].desc;
+
+  document.getElementById('results-list-vote').innerHTML = `<div>${scores.map((s, rank) => {
+    const pct = Math.round((s[currentMethod] - minS) / range * 100);
+    const scoreStr = Number.isInteger(s[currentMethod]) ? s[currentMethod] : s[currentMethod].toFixed(1);
+    const condorcet = rank === 0 && isCondorcetWinner(s.idx);
+    return `<div class="result-item">
+      <span class="rank">${rank + 1}</span>
+      <span class="result-name">${s.name}${condorcet ? '<small>condorcet ✓</small>' : ''}</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <span class="score-val">${scoreStr}</span>
+    </div>`;
+  }).join('')}</div>`;
+
+  renderPersonalList();
+}
+
+function renderPersonalList() {
+  const el = document.getElementById('personal-list');
+  if (!el) return;
+  const items = pairs.map(([a, b]) => {
+    const v = votes[currentPerson][a + ',' + b];
+    if (v === null) return `<div class="pair-result"><span class="unanswered">${activities[a]} vs ${activities[b]} — unanswered</span></div>`;
+    if (v === 'tie') return `<div class="pair-result"><span class="pr-winner">${activities[a]}</span><span class="pr-vs">vs</span><span class="pr-winner">${activities[b]}</span><span class="pr-tie">tie</span></div>`;
+    const winner = v === 'a' ? activities[a] : activities[b];
+    const loser  = v === 'a' ? activities[b] : activities[a];
+    return `<div class="pair-result"><span class="pr-winner">${winner}</span><span class="pr-vs">›</span><span class="pr-loser">${loser}</span></div>`;
+  });
+  el.innerHTML = items.join('');
+}
+
+function setMethod(m) {
+  currentMethod = m;
+  renderVoteResults();
+}
+
+// ── utils ──
+function showPhase(id) {
+  document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
