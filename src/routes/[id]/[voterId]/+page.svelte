@@ -102,8 +102,8 @@
 			</div>
 		</div>
 
-		<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen px-4">
-			<div class="bg-muted/30 border border-border rounded-lg p-4 w-fit mx-auto max-w-full overflow-x-auto">
+		<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen">
+			<div class="bg-muted/30 border-y border-border p-4 w-fit min-w-full overflow-x-auto md:[border:1px_solid_var(--border)] md:rounded-lg md:w-fit md:min-w-0 md:mx-4">
 				<PairwiseMatrix
 					options={data.options}
 					votes={data.votes}

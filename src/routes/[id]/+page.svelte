@@ -283,8 +283,8 @@
 						<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
 						<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
 					</div>
-					<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen px-4">
-						<div class="bg-muted/30 border border-border rounded-lg p-4 w-fit mx-auto max-w-full overflow-x-auto">
+					<div class="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen">
+						<div class="bg-muted/30 border-y border-border p-4 w-fit min-w-full overflow-x-auto md:[border:1px_solid_var(--border)] md:rounded-lg md:w-fit md:min-w-0 md:mx-4">
 							<PairwiseMatrix
 								options={localOptions}
 								votes={data.adminVotes}
