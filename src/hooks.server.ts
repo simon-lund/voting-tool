@@ -1,4 +1,7 @@
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { db } from '$lib/server/db';
+import { building } from '$app/environment';
 
-await migrate(db, { migrationsFolder: 'drizzle' });
+if (!building) {
+	const { migrate } = await import('drizzle-orm/postgres-js/migrator');
+	const { db } = await import('$lib/server/db');
+	await migrate(db, { migrationsFolder: 'drizzle' });
+}
