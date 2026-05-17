@@ -4,9 +4,13 @@
 
 	let { data } = $props();
 
+	let localOptions = $state(data.options);
+	let localVoters = $state(data.voters);
 	let copiedIdx = $state<number | null>(null);
 	let newOption = $state('');
 	let addingOption = $state(false);
+	let newVoterName = $state('');
+	let addingVoter = $state(false);
 
 	async function copyLink(link: string, idx: number) {
 		await navigator.clipboard.writeText(link);
@@ -26,10 +30,37 @@
 		});
 		if (res.ok) {
 			const { option } = await res.json();
-			data.options = [...data.options, option];
+			localOptions = [...localOptions, option];
 			newOption = '';
 		}
 		addingOption = false;
+	}
+
+	async function removeOption(optionId: number) {
+		const res = await fetch('/api/options', {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ adminId: data.vote.adminId, optionId })
+		});
+		if (res.ok) {
+			localOptions = localOptions.filter((o) => o.id !== optionId);
+		}
+	}
+
+	async function addVoter() {
+		if (!newVoterName.trim() || addingVoter) return;
+		addingVoter = true;
+		const res = await fetch('/api/voters', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ adminId: data.vote.adminId, name: newVoterName.trim() })
+		});
+		if (res.ok) {
+			const { voter } = await res.json();
+			localVoters = [...localVoters, voter];
+			newVoterName = '';
+		}
+		addingVoter = false;
 	}
 
 	type Option = { id: number; label: string; position: number };
@@ -81,15 +112,15 @@
 			.sort((a, b) => b.score - a.score);
 	}
 
-	const results = $derived(computeResults(data.options, data.allVotes));
+	const results = $derived(computeResults(localOptions, data.allVotes));
 	const maxScore = $derived(Math.max(...results.map((r) => r.score), 1));
 	const minScore = $derived(Math.min(...results.map((r) => r.score), 0));
 	const scoreRange = $derived(maxScore - minScore || 1);
 
 	const totalPairs = $derived(
-		(data.options.length * (data.options.length - 1)) / 2
+		(localOptions.length * (localOptions.length - 1)) / 2
 	);
-	const totalExpected = $derived(totalPairs * (data.voters.length + 1));
+	const totalExpected = $derived(totalPairs * (localVoters.length + 1));
 	const totalAnswered = $derived(data.allVotes.length);
 </script>
 
@@ -110,9 +141,14 @@
 				</h2>
 			</div>
 			<div class="flex flex-wrap gap-1.5 mb-3">
-				{#each data.options as opt}
-					<span class="text-xs px-2 py-1 bg-muted border border-border rounded-full text-foreground">
+				{#each localOptions as opt}
+					<span class="group text-xs px-2 py-1 bg-muted border border-border rounded-full text-foreground inline-flex items-center gap-1">
 						{opt.label}
+						<button
+							onclick={() => removeOption(opt.id)}
+							class="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+							title="Remove"
+						>×</button>
 					</span>
 				{/each}
 			</div>
@@ -144,7 +180,7 @@
 				</h2>
 			</div>
 			<div class="space-y-2">
-				{#each data.voters as voter, i}
+				{#each localVoters as voter, i}
 					<div
 						class="flex items-center gap-3 px-3 py-2 bg-muted/50 border border-border rounded-lg"
 					>
@@ -164,6 +200,23 @@
 					</div>
 				{/each}
 			</div>
+			<div class="flex gap-2 mt-3">
+				<input
+					type="text"
+					bind:value={newVoterName}
+					placeholder="Add voter..."
+					onkeydown={(e) => { if (e.key === 'Enter') addVoter(); }}
+					class="flex-1 px-3 py-1.5 text-sm bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+				<button
+					onclick={addVoter}
+					disabled={addingVoter || !newVoterName.trim()}
+					class="px-3 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+				>
+					<Plus class="h-3.5 w-3.5" />
+					Add
+				</button>
+			</div>
 		</section>
 
 		<!-- Admin voting matrix -->
@@ -181,7 +234,7 @@
 				</div>
 				<div class="bg-muted/30 border border-border rounded-lg p-4">
 					<PairwiseMatrix
-						options={data.options}
+						options={localOptions}
 						votes={data.adminVotes}
 						voterToken={data.adminVoter.token}
 					/>
@@ -200,11 +253,11 @@
 
 			<div class="grid grid-cols-3 gap-2 mb-4">
 				<div class="bg-muted/50 border border-border rounded-lg p-3">
-					<span class="text-lg font-medium block">{data.options.length}</span>
+					<span class="text-lg font-medium block">{localOptions.length}</span>
 					<span class="text-xs text-muted-foreground">options</span>
 				</div>
 				<div class="bg-muted/50 border border-border rounded-lg p-3">
-					<span class="text-lg font-medium block">{data.voters.length + 1}</span>
+					<span class="text-lg font-medium block">{localVoters.length + 1}</span>
 					<span class="text-xs text-muted-foreground">voters</span>
 				</div>
 				<div class="bg-muted/50 border border-border rounded-lg p-3">
