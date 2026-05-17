@@ -73,14 +73,18 @@
 	const myRanking = $derived(computeRanking(data.options, data.votes));
 	const totalRanking = $derived(computeRanking(data.options, liveAllVotes));
 
-	let showAllMy = $state(false);
-	let showAllTotal = $state(false);
+	let showingGroup = $state(true);
+	let showAll = $state(false);
 
-	const visibleMy = $derived(
-		myRanking.length > 15 && !showAllMy ? myRanking.slice(0, 12) : myRanking
+	const primaryRanking = $derived(showingGroup ? totalRanking : myRanking);
+	const secondaryRanking = $derived(showingGroup ? myRanking : totalRanking);
+
+	const secondaryRankMap = $derived(
+		new Map(secondaryRanking.map((r, i) => [r.id, i + 1]))
 	);
-	const visibleTotal = $derived(
-		totalRanking.length > 15 && !showAllTotal ? totalRanking.slice(0, 12) : totalRanking
+
+	const visibleRanking = $derived(
+		primaryRanking.length > 15 && !showAll ? primaryRanking.slice(0, 12) : primaryRanking
 	);
 </script>
 
@@ -117,58 +121,54 @@
 			{answered} / {data.totalPairs} pairs answered
 		</p>
 
-		<!-- Rankings -->
-		<div class="space-y-6 max-w-xl mx-auto">
-			<!-- Your ranking -->
+		<!-- Ranking -->
+		<div class="max-w-xl mx-auto">
 			<section class="bg-muted/30 border border-border rounded-lg p-4">
 				<div class="flex items-center gap-2 mb-3">
 					<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
-					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Your ranking
-					</h2>
+					<div class="flex gap-1 text-xs font-medium">
+						<button
+							onclick={() => { showingGroup = true; showAll = false; }}
+							class="px-2 py-0.5 rounded transition-colors {showingGroup ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}"
+						>
+							Group
+						</button>
+						<button
+							onclick={() => { showingGroup = false; showAll = false; }}
+							class="px-2 py-0.5 rounded transition-colors {!showingGroup ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}"
+						>
+							Yours
+						</button>
+					</div>
 				</div>
 				<div class="space-y-1">
-					{#each visibleMy as result, rank}
+					{#each visibleRanking as result, rank}
+						{@const secondaryRank = secondaryRankMap.get(result.id) ?? 0}
+						{@const diff = secondaryRank - (rank + 1)}
 						<div class="flex items-center gap-3 py-1.5">
 							<span class="text-xs text-muted-foreground font-mono w-4 text-right">{rank + 1}</span>
-							<span class="text-sm truncate">{result.label}</span>
-							<span class="text-xs text-muted-foreground font-mono ml-auto">{result.score}</span>
+							<span class="text-sm truncate flex-1">{result.label}</span>
+							<span class="text-xs font-mono w-12 text-right {diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-500' : 'text-muted-foreground'}">
+								{#if diff > 0}
+									+{diff}
+								{:else if diff < 0}
+									{diff}
+								{:else}
+									=
+								{/if}
+							</span>
+							<span class="text-xs text-muted-foreground font-mono w-6 text-right" title="{showingGroup ? 'Your' : 'Group'} rank">
+								#{secondaryRank}
+							</span>
 						</div>
 					{/each}
 				</div>
-				{#if myRanking.length > 15 && !showAllMy}
+				{#if primaryRanking.length > 15 && !showAll}
 					<button
-						onclick={() => showAllMy = true}
+						onclick={() => showAll = true}
 						class="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
 					>
-						show {myRanking.length - 12} more...
-					</button>
-				{/if}
-			</section>
-
-			<!-- Total ranking -->
-			<section class="bg-muted/30 border border-border rounded-lg p-4">
-				<div class="flex items-center gap-2 mb-3">
-					<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
-					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Group ranking
-					</h2>
-				</div>
-				<div class="space-y-1">
-					{#each visibleTotal as result, rank}
-						<div class="flex items-center gap-3 py-1.5">
-							<span class="text-xs text-muted-foreground font-mono w-4 text-right">{rank + 1}</span>
-							<span class="text-sm truncate">{result.label}</span>
-							<span class="text-xs text-muted-foreground font-mono ml-auto">{result.score}</span>
-						</div>
-					{/each}
-				</div>
-				{#if totalRanking.length > 15 && !showAllTotal}
-					<button
-						onclick={() => showAllTotal = true}
-						class="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-					>
-						show {totalRanking.length - 12} more...
+						show {primaryRanking.length - 12} more...
 					</button>
 				{/if}
 			</section>
