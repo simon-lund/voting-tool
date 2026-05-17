@@ -72,6 +72,16 @@
 
 	const myRanking = $derived(computeRanking(data.options, data.votes));
 	const totalRanking = $derived(computeRanking(data.options, liveAllVotes));
+
+	let showAllMy = $state(false);
+	let showAllTotal = $state(false);
+
+	const visibleMy = $derived(
+		myRanking.length > 15 && !showAllMy ? myRanking.slice(0, 12) : myRanking
+	);
+	const visibleTotal = $derived(
+		totalRanking.length > 15 && !showAllTotal ? totalRanking.slice(0, 12) : totalRanking
+	);
 </script>
 
 <div class="min-h-screen bg-background">
@@ -116,7 +126,7 @@
 					</h2>
 				</div>
 				<div class="space-y-1">
-					{#each myRanking as result, rank}
+					{#each visibleMy as result, rank}
 						<div class="flex items-center gap-3 py-1.5">
 							<span class="text-xs text-muted-foreground font-mono w-4 text-right">{rank + 1}</span>
 							<span class="text-sm truncate">{result.label}</span>
@@ -124,6 +134,14 @@
 						</div>
 					{/each}
 				</div>
+				{#if myRanking.length > 15 && !showAllMy}
+					<button
+						onclick={() => showAllMy = true}
+						class="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					>
+						show {myRanking.length - 12} more...
+					</button>
+				{/if}
 			</section>
 
 			<!-- Total ranking -->
@@ -135,7 +153,7 @@
 					</h2>
 				</div>
 				<div class="space-y-1">
-					{#each totalRanking as result, rank}
+					{#each visibleTotal as result, rank}
 						<div class="flex items-center gap-3 py-1.5">
 							<span class="text-xs text-muted-foreground font-mono w-4 text-right">{rank + 1}</span>
 							<span class="text-sm truncate">{result.label}</span>
@@ -143,6 +161,14 @@
 						</div>
 					{/each}
 				</div>
+				{#if totalRanking.length > 15 && !showAllTotal}
+					<button
+						onclick={() => showAllTotal = true}
+						class="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					>
+						show {totalRanking.length - 12} more...
+					</button>
+				{/if}
 			</section>
 		</div>
 	</div>

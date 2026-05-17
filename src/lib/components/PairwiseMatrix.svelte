@@ -110,9 +110,8 @@
 			{#each sorted as row, ri}
 				<tr>
 					<td
-						class="p-2 text-xs font-medium max-w-24 truncate text-right pr-3 transition-colors
+						class="p-2 text-xs font-medium text-right pr-3 whitespace-nowrap transition-colors
 							{hoverRow === ri ? 'text-foreground' : 'text-muted-foreground'}"
-						title={row.label}
 					>
 						{row.label}
 					</td>

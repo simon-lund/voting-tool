@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PairwiseMatrix from '$lib/components/PairwiseMatrix.svelte';
-	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowDown, Plus } from '@lucide/svelte';
+	import { Copy, Check, Vote, Link, BarChart3, ArrowLeft, ArrowDown, Plus, Trash2 } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
 
 	let { data } = $props();
 
@@ -12,6 +13,9 @@
 	let addingOption = $state(false);
 	let newVoterName = $state('');
 	let addingVoter = $state(false);
+	let deleteConfirm = $state('');
+	let deleting = $state(false);
+	let activeTab = $state<'vote' | 'results'>('vote');
 
 	async function copyLink(link: string, idx: number) {
 		await navigator.clipboard.writeText(link);
@@ -69,6 +73,20 @@
 			newVoterName = '';
 		}
 		addingVoter = false;
+	}
+
+	async function deleteVote() {
+		if (deleteConfirm !== data.vote.title || deleting) return;
+		deleting = true;
+		const res = await fetch('/api/delete-vote', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ adminId: data.vote.adminId, confirmTitle: deleteConfirm })
+		});
+		if (res.ok) {
+			goto('/');
+		}
+		deleting = false;
 	}
 
 	type Option = { id: number; label: string; position: number };
@@ -239,65 +257,102 @@
 			</div>
 		</section>
 
-		<!-- Admin voting matrix -->
-		{#if data.adminVoter}
+		<!-- Tabs -->
+		<div class="flex gap-1 border-b border-border">
+			<button
+				onclick={() => activeTab = 'vote'}
+				class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
+					{activeTab === 'vote' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+			>
+				Vote
+			</button>
+			<button
+				onclick={() => activeTab = 'results'}
+				class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
+					{activeTab === 'results' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+			>
+				Results
+			</button>
+		</div>
+
+		<!-- Vote tab -->
+		{#if activeTab === 'vote'}
+			{#if data.adminVoter}
+				<section>
+					<div class="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+						<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
+						<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
+					</div>
+					<div class="bg-muted/30 border border-border rounded-lg p-4">
+						<PairwiseMatrix
+							options={localOptions}
+							votes={data.adminVotes}
+							voterToken={data.adminVoter.token}
+						/>
+					</div>
+				</section>
+			{/if}
+		{/if}
+
+		<!-- Results tab -->
+		{#if activeTab === 'results'}
 			<section>
-				<div class="flex items-center gap-2 mb-3">
-					<Vote class="h-3.5 w-3.5 text-muted-foreground" />
-					<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Your vote
-					</h2>
+				<div class="grid grid-cols-3 gap-2 mb-4">
+					<div class="bg-muted/50 border border-border rounded-lg p-3">
+						<span class="text-lg font-medium block">{localOptions.length}</span>
+						<span class="text-xs text-muted-foreground">options</span>
+					</div>
+					<div class="bg-muted/50 border border-border rounded-lg p-3">
+						<span class="text-lg font-medium block">{localVoters.length + 1}</span>
+						<span class="text-xs text-muted-foreground">voters</span>
+					</div>
+					<div class="bg-muted/50 border border-border rounded-lg p-3">
+						<span class="text-lg font-medium block">{totalAnswered}/{totalExpected}</span>
+						<span class="text-xs text-muted-foreground">pairs done</span>
+					</div>
 				</div>
-				<div class="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
-					<span class="flex items-center gap-1"><ArrowLeft class="h-3 w-3" /> prefer row</span>
-					<span class="flex items-center gap-1"><ArrowDown class="h-3 w-3" /> prefer column</span>
-				</div>
-				<div class="bg-muted/30 border border-border rounded-lg p-4">
-					<PairwiseMatrix
-						options={localOptions}
-						votes={data.adminVotes}
-						voterToken={data.adminVoter.token}
-					/>
+
+				<div class="space-y-1">
+					{#each results as result, rank}
+						{@const pct = Math.round(((result.score - minScore) / scoreRange) * 100)}
+						<div class="grid grid-cols-[24px_1fr_80px_40px] items-center gap-3 py-2 border-b border-border last:border-0">
+							<span class="text-xs text-muted-foreground text-right font-mono">{rank + 1}</span>
+							<span class="text-sm font-medium truncate">{result.label}</span>
+							<div class="h-1 bg-muted rounded-full overflow-hidden">
+								<div class="h-full bg-foreground rounded-full" style="width:{pct}%"></div>
+							</div>
+							<span class="text-xs text-muted-foreground text-right font-mono">{result.score}</span>
+						</div>
+					{/each}
 				</div>
 			</section>
 		{/if}
 
-		<!-- Results section -->
-		<section>
+		<!-- Danger zone -->
+		<section class="border border-destructive/30 rounded-lg p-4 mt-12">
 			<div class="flex items-center gap-2 mb-3">
-				<BarChart3 class="h-3.5 w-3.5 text-muted-foreground" />
-				<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-					Results (Copeland)
+				<Trash2 class="h-3.5 w-3.5 text-destructive" />
+				<h2 class="text-xs font-medium text-destructive uppercase tracking-wider">
+					Danger zone
 				</h2>
 			</div>
-
-			<div class="grid grid-cols-3 gap-2 mb-4">
-				<div class="bg-muted/50 border border-border rounded-lg p-3">
-					<span class="text-lg font-medium block">{localOptions.length}</span>
-					<span class="text-xs text-muted-foreground">options</span>
-				</div>
-				<div class="bg-muted/50 border border-border rounded-lg p-3">
-					<span class="text-lg font-medium block">{localVoters.length + 1}</span>
-					<span class="text-xs text-muted-foreground">voters</span>
-				</div>
-				<div class="bg-muted/50 border border-border rounded-lg p-3">
-					<span class="text-lg font-medium block">{totalAnswered}/{totalExpected}</span>
-					<span class="text-xs text-muted-foreground">pairs done</span>
-				</div>
-			</div>
-
-			<div class="space-y-1">
-				{#each results as result, rank}
-					{@const pct = Math.round(((result.score - minScore) / scoreRange) * 100)}
-					<div class="grid grid-cols-[24px_1fr_80px_40px] items-center gap-3 py-2 border-b border-border last:border-0">
-						<span class="text-xs text-muted-foreground text-right font-mono">{rank + 1}</span>
-						<span class="text-sm font-medium truncate">{result.label}</span>
-						<div class="h-1 bg-muted rounded-full overflow-hidden">
-							<div class="h-full bg-foreground rounded-full" style="width:{pct}%"></div>
-						</div>
-						<span class="text-xs text-muted-foreground text-right font-mono">{result.score}</span>
-					</div>
-				{/each}
+			<p class="text-sm text-muted-foreground mb-3">
+				Type <strong class="text-foreground">{data.vote.title}</strong> to permanently delete this vote and all data.
+			</p>
+			<div class="flex gap-2">
+				<input
+					type="text"
+					bind:value={deleteConfirm}
+					placeholder="Type vote title to confirm..."
+					class="flex-1 px-3 py-1.5 text-sm bg-muted/50 border border-destructive/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-destructive/50"
+				/>
+				<button
+					onclick={deleteVote}
+					disabled={deleteConfirm !== data.vote.title || deleting}
+					class="px-3 py-1.5 text-sm font-medium bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50"
+				>
+					{deleting ? 'Deleting...' : 'Delete vote'}
+				</button>
 			</div>
 		</section>
 	</div>
