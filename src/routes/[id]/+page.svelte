@@ -21,13 +21,20 @@
 		}
 	});
 
-	const votesEvent = connection.select('votes');
+	const votesStore = connection.select('votes');
 
 	$effect(() => {
-		const value = votesEvent.json<typeof data.allVotes>();
-		if (value && Array.isArray(value)) {
-			liveAllVotes = value;
-		}
+		const unsub = votesStore.subscribe((raw) => {
+			if (raw) {
+				try {
+					const parsed = JSON.parse(raw);
+					if (Array.isArray(parsed)) {
+						liveAllVotes = parsed;
+					}
+				} catch {}
+			}
+		});
+		return unsub;
 	});
 
 	let localOptions = $state(data.options);
