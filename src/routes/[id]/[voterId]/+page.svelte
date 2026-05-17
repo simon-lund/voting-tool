@@ -91,8 +91,8 @@
 		<span class="text-xs text-muted-foreground ml-auto">{data.voter.name}</span>
 	</header>
 
-	<div class="max-w-6xl mx-auto p-6 space-y-6">
-		<div>
+	<div class="px-6 py-6 space-y-6">
+		<div class="max-w-3xl mx-auto">
 			<p class="text-sm text-muted-foreground mb-1">
 				Compare each pair of options. Click a cell to set your preference.
 			</p>
@@ -102,7 +102,7 @@
 			</div>
 		</div>
 
-		<div class="bg-muted/30 border border-border rounded-lg p-4">
+		<div class="bg-muted/30 border border-border rounded-lg p-4 w-fit mx-auto max-w-full">
 			<PairwiseMatrix
 				options={data.options}
 				votes={data.votes}
@@ -116,7 +116,7 @@
 		</p>
 
 		<!-- Rankings -->
-		<div class="space-y-6">
+		<div class="space-y-6 max-w-xl mx-auto">
 			<!-- Your ranking -->
 			<section class="bg-muted/30 border border-border rounded-lg p-4">
 				<div class="flex items-center gap-2 mb-3">
@@ -171,5 +171,7 @@
 				{/if}
 			</section>
 		</div>
+
+		<div class="h-24"></div>
 	</div>
 </div>

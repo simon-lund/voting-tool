@@ -96,7 +96,7 @@
 	});
 </script>
 
-<div class="overflow-x-auto pb-20">
+<div class="pb-20">
 	<table class="border-collapse">
 		<thead>
 			<tr>
