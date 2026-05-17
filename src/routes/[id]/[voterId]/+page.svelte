@@ -102,7 +102,7 @@
 			</div>
 		</div>
 
-		<div class="bg-muted/30 border border-border rounded-lg p-4 w-fit mx-auto max-w-full">
+		<div class="bg-muted/30 border border-border rounded-lg p-4">
 			<PairwiseMatrix
 				options={data.options}
 				votes={data.votes}

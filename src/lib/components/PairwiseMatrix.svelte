@@ -88,6 +88,18 @@
 
 	const sorted = $derived([...options].sort((a, b) => a.position - b.position));
 
+	let measureEl: HTMLSpanElement | undefined = $state();
+	let labelHeight = $state(80);
+
+	$effect(() => {
+		if (!measureEl) return;
+		const longest = sorted.reduce((a, b) => (a.label.length > b.label.length ? a : b), sorted[0]);
+		if (!longest) return;
+		measureEl.textContent = longest.label;
+		const width = measureEl.offsetWidth;
+		labelHeight = Math.ceil(width * 0.707) + 16;
+	});
+
 	let hoverRow = $state<number | null>(null);
 	let hoverCol = $state<number | null>(null);
 
@@ -96,7 +108,8 @@
 	});
 </script>
 
-<div class="pb-20">
+<span bind:this={measureEl} class="text-xs font-medium whitespace-nowrap absolute invisible pointer-events-none"></span>
+<div class="overflow-x-auto" style="padding-bottom:{labelHeight}px">
 	<table class="border-collapse">
 		<thead>
 			<tr>
