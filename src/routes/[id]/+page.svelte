@@ -7,6 +7,7 @@
 	let localOptions = $state(data.options);
 	let localVoters = $state(data.voters);
 	let copiedIdx = $state<number | null>(null);
+	let copiedAll = $state(false);
 	let newOption = $state('');
 	let addingOption = $state(false);
 	let newVoterName = $state('');
@@ -18,6 +19,13 @@
 		setTimeout(() => {
 			if (copiedIdx === idx) copiedIdx = null;
 		}, 2000);
+	}
+
+	async function copyAllLinks() {
+		const text = localVoters.map((v) => `- [${v.name}](${v.link})`).join('\n');
+		await navigator.clipboard.writeText(text);
+		copiedAll = true;
+		setTimeout(() => { copiedAll = false; }, 2000);
 	}
 
 	async function addOption() {
@@ -178,6 +186,18 @@
 				<h2 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
 					Voter links
 				</h2>
+				<button
+					onclick={copyAllLinks}
+					class="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+				>
+					{#if copiedAll}
+						<Check class="h-3 w-3 text-green-600" />
+						<span class="text-green-600">copied</span>
+					{:else}
+						<Copy class="h-3 w-3" />
+						copy all
+					{/if}
+				</button>
 			</div>
 			<div class="space-y-2">
 				{#each localVoters as voter, i}
